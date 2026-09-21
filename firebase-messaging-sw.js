@@ -1,3 +1,11 @@
+// Versi baru langsung menggantikan versi lama, tanpa menunggu tab ditutup atau unregister manual.
+self.addEventListener("install", function () {
+  self.skipWaiting();
+});
+self.addEventListener("activate", function (event) {
+  event.waitUntil(self.clients.claim());
+});
+
 importScripts("https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.js");
 importScripts("https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-messaging.js");
 
