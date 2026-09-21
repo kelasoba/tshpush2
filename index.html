@@ -202,6 +202,7 @@
     vapidKey: 'BMS927DeENPeRR0ruQI8Sm5IhmmC6vvxHfFqASY4hOmYNVVAh7z_QNcSuxWkD-en4onv-fIpq8vwcFA94razuMA'
   };
   var COLLECTION = 'device_tokens';
+  var EVENTS_COLLECTION = 'notification_events';
 
   // Jam kerja [jam, menit] menurut jam di perangkat pengunjung
   var WORK = { start: [8, 0], end: [17, 0] };
@@ -400,6 +401,7 @@
     firebase.messaging().onMessage(function (payload) {
       var n = payload.notification || payload.data || {};
       showToast(n.title || 'Pesan baru', n.body || '');
+      logEvent('delivered_foreground', { message_id: (payload.data && payload.data.message_id) || '' });
     });
   }
 
@@ -416,6 +418,18 @@
       last_seen: firebase.firestore.FieldValue.serverTimestamp(),
       user_agent: navigator.userAgent
     }, { merge: true });
+  }
+
+  // Catat satu baris event ke koleksi notification_events. Dipakai buat semua
+  // titik: izin diberikan/ditolak, token dibuat, dan push diterima di foreground.
+  function logEvent(eventType, extra) {
+    extra = extra || {};
+    var payload = Object.assign({
+      event_type: eventType,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }, extra);
+    return firebase.firestore().collection(EVENTS_COLLECTION).add(payload)
+      .catch(function (err) { console.error('Gagal log event:', err); });
   }
 
   async function setupPush() {
@@ -458,14 +472,17 @@
       if (permission === 'denied') {
         enableBtn.hidden = true;
         setNotif('Notifikasi diblokir di browser ini, jadi tidak ada pengingat. Klik ikon gembok di address bar, ubah Notifications ke Allow, lalu muat ulang.');
+        logEvent('permission_denied');
         return;
       }
       if (permission !== 'granted') {
         enableBtn.hidden = false;
         setNotif('Izinkan notifikasi supaya kamu dikabari pas waktunya siap-siap pulang.');
+        logEvent('permission_default');
         return;
       }
       enableBtn.hidden = true;
+      logEvent('permission_granted');
 
       var swParams = new URLSearchParams({
         apiKey: CONFIG.apiKey,
@@ -492,6 +509,7 @@
       }
 
       await saveTokenDoc(token);
+      logEvent('token_created', { token: token });
       listenForeground();
       setNotif('Pengingat aktif. Kamu akan dikabari lewat notifikasi.');
     } catch (err) {
