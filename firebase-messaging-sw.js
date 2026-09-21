@@ -17,7 +17,17 @@ firebase.initializeApp(configFromQuery());
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
-  const title = (payload.notification && payload.notification.title) || "Notifikasi";
-  const body = (payload.notification && payload.notification.body) || "";
-  self.registration.showNotification(title, { body: body });
+  // Pesan bertipe `notification` sudah ditampilkan otomatis oleh SDK Firebase.
+  // Kalau di sini ditampilkan lagi, hasilnya dobel.
+  if (payload.notification) return;
+
+  // Pesan data-only: tidak ada yang menampilkan otomatis, jadi kita tampilkan sendiri.
+  const data = payload.data || {};
+  const title = data.title || "Notifikasi";
+  const body = data.body || "";
+
+  self.registration.showNotification(title, {
+    body: body,
+    tag: "pulang-reminder", // tag sama = menimpa, bukan menumpuk
+  });
 });
