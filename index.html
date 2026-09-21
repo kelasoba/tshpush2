@@ -475,7 +475,11 @@
         messagingSenderId: CONFIG.messagingSenderId,
         appId: CONFIG.appId
       });
-      var registration = await navigator.serviceWorker.register('firebase-messaging-sw.js?' + swParams.toString());
+      var registration = await navigator.serviceWorker.register(
+        'firebase-messaging-sw.js?' + swParams.toString(),
+        { updateViaCache: 'none' }
+      );
+      registration.update().catch(function () {}); // cek versi SW terbaru tiap halaman dibuka
       await navigator.serviceWorker.ready;
 
       var token = await firebase.messaging().getToken({
